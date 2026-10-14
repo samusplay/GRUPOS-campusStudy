@@ -1,39 +1,35 @@
 server:
-  port: 8082
+  port: ${SERVER_PORT:8082}
 
 spring:
   application:
     name: grupos-service
+
+  # ---------- Base de datos (PostgreSQL) ----------
   datasource:
-    url: jdbc:h2:mem:gruposdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/grupos_db}
+    username: ${SPRING_DATASOURCE_USERNAME:campus}
+    password: ${SPRING_DATASOURCE_PASSWORD:campus123}
+
   jpa:
     hibernate:
       ddl-auto: update
+    open-in-view: false
     show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
 
-campusstudy:
-  auth:
-    # Demo: Bearer <usuario_id>  (ej. Authorization: Bearer 692464)
-    demo-mode: true
+  # ---------- JSON: snake_case en todo, sin tocar cada DTO ----------
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    serialization:
+      write-dates-as-timestamps: false
+
+# ---------- Configuración propia ----------
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET}
   clients:
+    materias-url: ${MATERIAS_URL:http://localhost:8006}
     timeout-ms: 3000
-    max-retries: 2
-    materias-base-url: http://localhost:8083
-    usuarios-base-url: http://localhost:8081
-    notificaciones-base-url: http://localhost:8084
-    tareas-base-url: http://localhost:8085
-  stubs:
-    enabled: true
 
 logging:
   level:
