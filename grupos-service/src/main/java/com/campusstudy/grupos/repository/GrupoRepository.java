@@ -10,57 +10,30 @@ import java.util.Optional;
 
 public interface GrupoRepository extends JpaRepository<Grupo, Long> {
 
+    // POST: ¿ya existe un grupo con ese nombre en esa materia? → 409
     boolean existsByNombreIgnoreCaseAndMateriaId(String nombre, Long materiaId);
 
+    // GET /grupos: los grupos donde el usuario es integrante, con TODOS sus integrantes
     @Query("""
             SELECT DISTINCT g FROM Grupo g
-            JOIN FETCH g.integrantes
+            LEFT JOIN FETCH g.integrantes
             WHERE g.id IN (
                 SELECT i.grupo.id FROM Integrante i WHERE i.usuarioId = :usuarioId
             )
             ORDER BY g.fechaCreacion DESC
             """)
-    List<Grupo> findByIntegranteUsuarioId(@Param("usuarioId") Long usuarioId);
+    List<Grupo> findAllByIntegrante(@Param("usuarioId") Long usuarioId);
 
+    // GET /grupos/{id}: el grupo SOLO si el usuario pertenece a él
     @Query("""
             SELECT g FROM Grupo g
             LEFT JOIN FETCH g.integrantes
-            WHERE g.id = :id
+            WHERE g.id = :grupoId
+              AND EXISTS (
+                SELECT 1 FROM Integrante i
+                WHERE i.grupo.id = :grupoId AND i.usuarioId = :usuarioId
+              )
             """)
-    Optional<Grupo> findByIdWithIntegrantes(@Param("id") Long id);
-
-    @Query("""
-            SELECT g FROM Grupo g
-            LEFT JOIN FETCH g.integrantes
-            WHERE g.id = :id
-            """)
-    Optional<Grupo> findByIdWithDetails(@Param("id") Long id);
-
-    @Query("""
-            SELECT COUNT(DISTINCT g) FROM Grupo g
-            JOIN g.integrantes i
-            WHERE i.usuarioId = :usuarioId
-            """)
-    long countByIntegranteUsuarioId(@Param("usuarioId") Long usuarioId);
-
-    @Query("""
-            SELECT COUNT(DISTINCT g) FROM Grupo g
-            JOIN g.integrantes i
-            WHERE i.usuarioId = :usuarioId AND g.activo = true
-            """)
-    long countActivosByIntegranteUsuarioId(@Param("usuarioId") Long usuarioId);
-
-    @Query("""
-            SELECT COUNT(DISTINCT g) FROM Grupo g
-            JOIN g.integrantes i
-            WHERE i.usuarioId = :usuarioId AND i.rol = com.campusstudy.grupos.model.RolIntegrante.lider
-            """)
-    long countLideradosByUsuarioId(@Param("usuarioId") Long usuarioId);
-
-    @Query("""
-            SELECT COUNT(DISTINCT g) FROM Grupo g
-            JOIN g.integrantes i
-            WHERE i.usuarioId = :usuarioId AND i.rol = com.campusstudy.grupos.model.RolIntegrante.miembro
-            """)
-    long countMiembroByUsuarioId(@Param("usuarioId") Long usuarioId);
+    Optional<Grupo> findByIdAndIntegrante(@Param("grupoId") Long grupoId,
+                                          @Param("usuarioId") Long usuarioId);
 }

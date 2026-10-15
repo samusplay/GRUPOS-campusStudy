@@ -1,131 +1,59 @@
 package com.campusstudy.grupos.model;
 
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "grupos", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_grupo_nombre_materia", columnNames = {"nombre", "materia_id"})
-})
+@Table(
+        name = "grupos",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_grupo_nombre_materia",
+                columnNames = {"nombre", "materia_id"}),
+        indexes = @Index(name = "idx_grupo_materia", columnList = "materia_id"))
+@Getter @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Grupo {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String nombre;
 
+    // Solo el id: la materia vive en materias-service (sin FK)
     @Column(name = "materia_id", nullable = false)
     private Long materiaId;
 
-    @Column(name = "creado_por", nullable = false)
+    // usuario_id del creador, sacado del "sub" del JWT (sin FK)
+    @Column(name = "creado_por", nullable = false, updatable = false)
     private Long creadoPor;
 
-    @Column(name = "zoom_url")
-    private String zoomUrl;
-
-    @Column(name = "jam_url")
-    private String jamUrl;
-
-    @Column(name = "fecha_creacion", nullable = false)
+    @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 
-    @Column(nullable = false)
-    private boolean activo = true;
-
-    @OneToMany(mappedBy = "grupo", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "grupo", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<Integrante> integrantes = new ArrayList<>();
 
-    @OneToMany(mappedBy = "grupo", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<Documento> documentos = new ArrayList<>();
-
     @PrePersist
-    void onCreate() {
+    void prePersist() {
         if (fechaCreacion == null) {
-            fechaCreacion = LocalDateTime.now();
+            // Hora Colombia (TZ del contenedor), sin nanosegundos: YYYY-MM-DDTHH:MM:SS
+            fechaCreacion = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
         }
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public Long getMateriaId() {
-        return materiaId;
-    }
-
-    public void setMateriaId(Long materiaId) {
-        this.materiaId = materiaId;
-    }
-
-    public Long getCreadoPor() {
-        return creadoPor;
-    }
-
-    public void setCreadoPor(Long creadoPor) {
-        this.creadoPor = creadoPor;
-    }
-
-    public String getZoomUrl() {
-        return zoomUrl;
-    }
-
-    public void setZoomUrl(String zoomUrl) {
-        this.zoomUrl = zoomUrl;
-    }
-
-    public String getJamUrl() {
-        return jamUrl;
-    }
-
-    public void setJamUrl(String jamUrl) {
-        this.jamUrl = jamUrl;
-    }
-
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
-    }
-
-    public void setFechaCreacion(LocalDateTime fechaCreacion) {
-        this.fechaCreacion = fechaCreacion;
-    }
-
-    public boolean isActivo() {
-        return activo;
-    }
-
-    public void setActivo(boolean activo) {
-        this.activo = activo;
-    }
-
-    public List<Integrante> getIntegrantes() {
-        return integrantes;
-    }
-
-    public void setIntegrantes(List<Integrante> integrantes) {
-        this.integrantes = integrantes;
-    }
-
-    public List<Documento> getDocumentos() {
-        return documentos;
-    }
-
-    public void setDocumentos(List<Documento> documentos) {
-        this.documentos = documentos;
+    // Mantiene los dos lados de la relación sincronizados
+    public void agregarIntegrante(Integrante integrante) {
+        integrantes.add(integrante);
+        integrante.setGrupo(this);
     }
 }
