@@ -34,3 +34,11 @@ app:
 logging:
   level:
     com.campusstudy.grupos: INFO
+
+# ---------- Salud: /health para el pipeline y Kubernetes ----------
+management:
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: health
